@@ -4,7 +4,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/KARTIKrocks/gowhatsapp)](https://goreportcard.com/report/github.com/KARTIKrocks/gowhatsapp)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/KARTIKrocks/gowhatsapp)](go.mod)
 [![CI](https://github.com/KARTIKrocks/gowhatsapp/actions/workflows/ci.yml/badge.svg)](https://github.com/KARTIKrocks/gowhatsapp/actions/workflows/ci.yml)
+[![GitHub tag](https://img.shields.io/github/v/tag/KARTIKrocks/gowhatsapp)](https://github.com/KARTIKrocks/gowhatsapp/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/gh/KARTIKrocks/gowhatsapp/branch/main/graph/badge.svg)](https://codecov.io/gh/KARTIKrocks/gowhatsapp)
 
 A clean, dependency-free Go client for the **WhatsApp Cloud API** (Meta Graph
 API). Send text, media, location, reactions, and approved templates (including

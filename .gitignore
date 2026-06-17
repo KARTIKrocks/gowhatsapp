@@ -1,0 +1,27 @@
+# Coverage files
+coverage*.out
+
+# Compiled test binaries
+*.test
+
+# Go build cache
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go workspace sum (local development only)
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
