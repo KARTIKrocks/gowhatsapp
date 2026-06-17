@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a problem with gowhatsapp
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: |
+        Smallest code sample that reproduces the issue.
+        Do NOT include access tokens or app secrets. An *APIError Code and
+        fbtrace_id are safe to share.
+      render: go
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      placeholder: go version go1.26.0 linux/amd64
+    validations:
+      required: true
+  - type: input
+    id: lib-version
+    attributes:
+      label: gowhatsapp version
+      placeholder: v0.1.0
+    validations:
+      required: true
