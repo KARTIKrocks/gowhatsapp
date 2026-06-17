@@ -141,9 +141,12 @@ func classify(code int) error {
 func parseAPIError(status int, body []byte) *APIError {
 	var env struct {
 		Error struct {
-			Message      string `json:"message"`
-			Type         string `json:"type"`
-			Code         int    `json:"code"`
+			Message string `json:"message"`
+			Type    string `json:"type"`
+			// Code is a pointer so an absent field (malformed/non-JSON body) is
+			// distinguishable from a real code of 0 — otherwise the zero value
+			// would be misclassified (classify(0) == ErrUnauthorized).
+			Code         *int   `json:"code"`
 			ErrorSubcode int    `json:"error_subcode"`
 			FBTraceID    string `json:"fbtrace_id"`
 			ErrorData    struct {
@@ -155,7 +158,6 @@ func parseAPIError(status int, body []byte) *APIError {
 
 	e := &APIError{
 		HTTPStatus: status,
-		Code:       env.Error.Code,
 		Subcode:    env.Error.ErrorSubcode,
 		Type:       env.Error.Type,
 		Message:    env.Error.Message,
@@ -163,10 +165,13 @@ func parseAPIError(status int, body []byte) *APIError {
 		FBTraceID:  env.Error.FBTraceID,
 		Raw:        body,
 	}
+	if env.Error.Code != nil {
+		e.Code = *env.Error.Code
+		e.sentinel = classify(*env.Error.Code)
+	}
 	if e.Message == "" {
 		e.Message = fmt.Sprintf("unexpected status %d", status)
 	}
-	e.sentinel = classify(e.Code)
 	if e.sentinel == nil {
 		if status >= 500 {
 			e.sentinel = ErrTransient

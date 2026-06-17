@@ -173,10 +173,12 @@ func TestSend_RetriesOnRateLimit(t *testing.T) {
 
 // TestSend_RetryBackoffNotDoubled guards against the double-sleep regression:
 // with maxRetries=1 there is exactly one inter-attempt gap, so the total wait
-// must be roughly one backoff (~40ms), not two (~80ms).
+// must be roughly one backoff (~100ms), not two (~200ms). The base is large and
+// the upper bound generous (well below 2× the base) so the test tolerates
+// scheduling jitter on loaded CI runners without masking a real doubling.
 func TestSend_RetryBackoffNotDoubled(t *testing.T) {
 	mt := whatsapp.NewMockTransport().WithResponse(503, `{"error":{"message":"down","code":131000}}`)
-	c := newTestClient(t, mt, whatsapp.WithRetry(1, 40*time.Millisecond))
+	c := newTestClient(t, mt, whatsapp.WithRetry(1, 100*time.Millisecond))
 
 	start := time.Now()
 	_, _ = c.SendText(context.Background(), "1555", "x")
@@ -185,11 +187,11 @@ func TestSend_RetryBackoffNotDoubled(t *testing.T) {
 	if n := len(mt.Requests()); n != 2 {
 		t.Fatalf("attempts = %d, want 2", n)
 	}
-	if elapsed < 30*time.Millisecond {
-		t.Fatalf("elapsed = %v, expected to back off ~40ms", elapsed)
+	if elapsed < 50*time.Millisecond {
+		t.Fatalf("elapsed = %v, expected to back off ~100ms", elapsed)
 	}
-	if elapsed > 70*time.Millisecond {
-		t.Fatalf("elapsed = %v, want ~40ms (double-sleep regression?)", elapsed)
+	if elapsed > 170*time.Millisecond {
+		t.Fatalf("elapsed = %v, want ~100ms (double-sleep regression would be ~200ms)", elapsed)
 	}
 }
 
@@ -271,5 +273,21 @@ func TestClassify_UnmappedCodeFallsBackToSendFailed(t *testing.T) {
 	_, err := c.SendText(context.Background(), "1555", "x")
 	if !errors.Is(err, whatsapp.ErrSendFailed) {
 		t.Fatalf("got %v, want ErrSendFailed", err)
+	}
+}
+
+// TestClassify_AbsentCodeNotUnauthorized guards the regression where a response
+// without an error.code (non-JSON or unexpected shape) defaulted Code to 0 and
+// was misclassified as ErrUnauthorized. Such bodies must fall back to the
+// status-based sentinel instead.
+func TestClassify_AbsentCodeNotUnauthorized(t *testing.T) {
+	mt := whatsapp.NewMockTransport().WithResponse(503, "upstream down (not json)")
+	c := newTestClient(t, mt, whatsapp.WithRetry(0, 0)) // no retries: assert classification, not backoff
+	_, err := c.SendText(context.Background(), "1555", "x")
+	if errors.Is(err, whatsapp.ErrUnauthorized) {
+		t.Fatalf("absent code misclassified as ErrUnauthorized: %v", err)
+	}
+	if !errors.Is(err, whatsapp.ErrTransient) {
+		t.Fatalf("got %v, want ErrTransient (5xx fallback)", err)
 	}
 }

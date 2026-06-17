@@ -2,6 +2,7 @@ package whatsapp_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -38,8 +39,22 @@ func TestUpload_BuildsMultipartAndParsesID(t *testing.T) {
 
 func TestUpload_RejectsEmptyMime(t *testing.T) {
 	c := newTestClient(t, whatsapp.NewMockTransport())
-	if _, err := c.Upload(context.Background(), "f", "", strings.NewReader("x")); err == nil {
-		t.Fatal("want error for empty MIME type")
+	if _, err := c.Upload(context.Background(), "f", "", strings.NewReader("x")); !errors.Is(err, whatsapp.ErrInvalidMessage) {
+		t.Fatalf("empty MIME: got %v, want ErrInvalidMessage", err)
+	}
+}
+
+func TestMediaInfo_RejectsEmptyID(t *testing.T) {
+	c := newTestClient(t, whatsapp.NewMockTransport())
+	if _, err := c.MediaInfo(context.Background(), ""); !errors.Is(err, whatsapp.ErrInvalidMessage) {
+		t.Fatalf("empty media ID: got %v, want ErrInvalidMessage", err)
+	}
+}
+
+func TestDeleteMedia_RejectsEmptyID(t *testing.T) {
+	c := newTestClient(t, whatsapp.NewMockTransport())
+	if err := c.DeleteMedia(context.Background(), ""); !errors.Is(err, whatsapp.ErrInvalidMessage) {
+		t.Fatalf("empty media ID: got %v, want ErrInvalidMessage", err)
 	}
 }
 

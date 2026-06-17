@@ -114,6 +114,11 @@ func (m Media) messageType() string { return m.kind }
 // public URL) is set, giving a clear local error instead of an opaque API
 // rejection.
 func (m Media) validate() error {
+	// kind is unexported, so a zero-value Media built directly (e.g.
+	// whatsapp.Media{Link: "..."}) has no type; require a constructor.
+	if m.kind == "" {
+		return fmt.Errorf("%w: media kind not set (use ImageByLink, DocumentByID, …)", ErrInvalidMessage)
+	}
 	if (m.ID == "") == (m.Link == "") {
 		return fmt.Errorf("%w: %s needs exactly one of ID or Link", ErrInvalidMessage, m.kind)
 	}
