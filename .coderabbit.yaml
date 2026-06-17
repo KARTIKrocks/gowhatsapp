@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit configuration for gowhatsapp — a zero-dependency Go client for the
+# WhatsApp Cloud API. Tuned for a public Go library: strict review, security
+# scanning for the token/secret-handling code paths, and conventions that keep
+# the public API forward-compatible.
+language: en-US
+
+reviews:
+  # Hold the bar high — this is a published, dependency-free library.
+  profile: assertive
+  # Post review comments without blocking merges on CodeRabbit itself; CI
+  # (test + lint) remains the gate.
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  changed_files_summary: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    # Don't review drafts; review only PRs targeting main.
+    drafts: false
+    base_branches:
+      - main
+
+  # Skip generated / non-source noise so review focus stays on Go code & docs.
+  path_filters:
+    - "!**/*.sum"
+    - "!LICENSE"
+
+  path_instructions:
+    - path: "**/*.go"
+      instructions: >-
+        This is a zero third-party dependency library — flag any new import that
+        is not from the Go standard library. Preserve API backward
+        compatibility: the `Message` interface is intentionally sealed (only this
+        package implements it via the unexported `buildRequest`), so new message
+        types must be added without breaking callers, and exported
+        names/signatures must not change in a non-major release. Every returned
+        error must wrap a sentinel from errors.go (so `errors.Is` works); a new
+        Cloud API error code should be mapped in `classify`. Never log, format,
+        or surface the access token, app secret, or webhook signatures. Keep
+        webhook signature verification constant-time (hmac.Equal). All network
+        calls must accept and honor context.Context. Confirm SQL/HTTP error and
+        success paths are handled rather than ignored.
+    - path: "**/*_test.go"
+      instructions: >-
+        Tests should use the provided MockTransport rather than real network
+        calls. Prefer table-driven subtests; keep per-function cyclomatic
+        complexity under 15 (gocyclo is enforced in CI — lift repeated
+        assertions into top-level helpers, since gocyclo counts nested closures
+        toward their parent function). New exported behavior should ship with
+        tests covering happy and error/edge paths.
+    - path: "**/*.md"
+      instructions: >-
+        Documentation must stay in sync with the code. Any public API change
+        should be reflected in README examples and recorded in CHANGELOG.md
+        under the Unreleased section (Keep a Changelog format). Verify code
+        snippets compile against the current signatures.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Keep the Go version matrix consistent with the floor declared in go.mod
+        (currently 1.22). Pin action and tool versions.
+
+  tools:
+    # Reuse the repo's existing .golangci.yml (golangci-lint v2).
+    golangci-lint:
+      enabled: true
+    # Secret scanning — this code handles access tokens and app secrets.
+    gitleaks:
+      enabled: true
+    # Lint the GitHub Actions CI workflow.
+    actionlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    # Surface CI (test/lint) check results inline in the review.
+    github-checks:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
+  pull_requests:
+    scope: auto
