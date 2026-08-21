@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "path": "DESIGN.md",
+      "description": "Architecture, design principles, the three future-proofing seams (API version, Doer transport, sealed Message), error model, and API-stability policy."
+    },
+    {
+      "path": "SECURITY.md",
+      "description": "Secret-handling contract and webhook signature verification guarantees."
+    },
+    {
+      "path": "errors.go",
+      "description": "Sentinel errors, APIError, and the Cloud API error-code -> sentinel mapping (classify) every send path routes through.",
+      "scope": ["whatsapp.go", "message.go", "template.go", "interactive.go", "media.go", "transport.go"]
+    },
+    {
+      "path": "doc.go",
+      "description": "Package-level overview and usage patterns."
+    },
+    {
+      "path": ".golangci.yml",
+      "description": "The linter ruleset already enforced in CI; avoid duplicating what golangci-lint already flags."
+    }
+  ]
+}
