@@ -1,0 +1,4 @@
+{
+  "disabledRules": ["go-exported-docs", "zero-dependency-core"],
+  "instructions": "Examples are illustrative, copied by users, and not part of the public API or coverage target. Each example is its own Go module (see go.mod under examples/send and examples/webhook), so the zero-dependency-core rule doesn't apply here. Still ensure they compile, demonstrate correct API usage, and never hardcode or print a real-looking AccessToken/AppSecret."
+}

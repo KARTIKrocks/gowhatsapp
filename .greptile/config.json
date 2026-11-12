@@ -1,0 +1,64 @@
+{
+  "strictness": 2,
+  "commentTypes": ["logic", "syntax", "style"],
+  "triggerOnUpdates": true,
+  "statusCheck": true,
+  "ignorePatterns": "**/mock_*.go\n**/testdata/**\n**/go.sum\n**/vendor/**",
+  "instructions": "gowhatsapp is a zero-third-party-dependency Go client for the official WhatsApp Cloud API (Meta Graph API): sending text/media/template/interactive messages and receiving webhooks. Single module, stdlib-only core (net/http, crypto/hmac, encoding/json). Prioritize the security-sensitive paths (webhook signature verification, secret handling), API-compatibility guarantees (the sealed Message interface, the Doer transport seam), and retry/context correctness over style. See DESIGN.md for architecture and API-stability policy, SECURITY.md for the secret-handling contract, and .greptile/rules.md for pattern rationale drawn from this repo's own past review (REVIEW.md).",
+  "rules": [
+    {
+      "id": "zero-dependency-core",
+      "rule": "This library ships zero third-party dependencies in its core module (only net/http, crypto/hmac, encoding/json, etc. from the standard library). Flag any new non-stdlib import added to a root-module file; a dependency belongs in a caller's application, not here.",
+      "scope": ["*.go"],
+      "severity": "high"
+    },
+    {
+      "id": "sealed-message-additive",
+      "rule": "Message is sealed via an unexported buildRequest method so only this package can implement it (message.go, template.go, interactive.go). Adding a new message type must stay purely additive — never change buildRequest's signature, never export it, and never require existing callers to change code. This is the library's core non-breaking-change guarantee per DESIGN.md section 3.3.",
+      "scope": ["message.go", "template.go", "interactive.go", "whatsapp.go"],
+      "severity": "high"
+    },
+    {
+      "id": "sentinel-error-mapping",
+      "rule": "Every error the client returns must wrap one of the sentinels in errors.go (errors.Is must work). A new Cloud API error code must be added to classify()'s switch, mapped to the most specific existing sentinel or left unmapped (nil) to fall back to ErrTransient/ErrSendFailed — never introduce a bespoke error string a caller would have to substring-match. Preserve the *int Code field in parseAPIError's json envelope (not int) — it exists specifically so an absent code is distinguishable from a real code of 0, which would otherwise be misclassified as ErrUnauthorized.",
+      "scope": ["errors.go", "*.go"],
+      "severity": "high"
+    },
+    {
+      "id": "webhook-signature-constant-time",
+      "rule": "X-Hub-Signature-256 verification must remain a constant-time comparison (hmac.Equal), never ==, bytes.Equal on attacker-influenced data compared byte-by-byte in a way that could short-circuit, or any other early-exit comparison. An empty AppSecret intentionally disables verification for local testing — do not silently change that default without flagging it as a security-relevant behavior change.",
+      "scope": ["webhook.go"],
+      "severity": "high"
+    },
+    {
+      "id": "no-secret-leakage",
+      "rule": "AccessToken, AppSecret, and raw webhook signatures must never be logged, included in an error message, or exposed through String()/Error() methods. APIError's FBTraceID and Code are the safe fields for diagnostics per SECURITY.md — anything else derived from a request/response that could carry the token or secret needs explicit scrubbing before it reaches a log line or error string.",
+      "scope": ["**/*.go"],
+      "severity": "high"
+    },
+    {
+      "id": "single-retry-sleep-site",
+      "rule": "The retry loop in transport.go must sleep at exactly one point per iteration, carrying the computed delay (from Retry-After or exponential backoff) forward into the top-of-loop wait — never sleep once inside an error branch and again at the top of the next iteration. This exact double-sleep bug (a 429 with Retry-After honored, then an extra backoff on top, while the network-error path only slept once) was found and fixed via TestSend_RetryBackoffNotDoubled; see .greptile/rules.md.",
+      "scope": ["transport.go"],
+      "severity": "high"
+    },
+    {
+      "id": "unbounded-buffering",
+      "rule": "Upload buffers the caller's entire io.Reader into memory before sending (documented behavior, not yet capped) and Download returns the full media body as a []byte with no explicit size limit of its own. A change that adds another unbounded io.ReadAll/bytes.Buffer accumulation of caller- or network-supplied data should either reuse an existing cap (like webhook.go's http.MaxBytesReader) or call out why one isn't needed.",
+      "scope": ["media.go", "transport.go"],
+      "severity": "medium"
+    },
+    {
+      "id": "context-honored",
+      "rule": "Every network-calling method must accept and honor context.Context, including mid-retry (sleepCtx must return ctx.Err() promptly on cancellation rather than sleeping to completion first).",
+      "scope": ["*.go"],
+      "severity": "medium"
+    },
+    {
+      "id": "go-exported-docs",
+      "rule": "Every new or newly-exported type, function, method, and constant must have a doc comment that starts with the identifier's own name.",
+      "scope": ["**/*.go"],
+      "severity": "low"
+    }
+  ]
+}
